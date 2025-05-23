@@ -26,7 +26,7 @@ layout for easy maintenance and extension.
 
 ## Directory layout
 
-```
+```bashs
 apa/
 ├── configuration.toml        # runtime settings
 ├── system_prompt.toml        # long, multi-line system prompt

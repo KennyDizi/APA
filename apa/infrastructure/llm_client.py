@@ -1,5 +1,6 @@
 import litellm, logging
-from typing import Any
+from typing import Any, AsyncGenerator
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
 from apa.config import load_settings
 
 # -------------------------------------------------------------------
@@ -60,10 +61,17 @@ CLAUDE_EXTENDED_THINKING_MODELS = [
 # providers the app currently supports
 ACCEPTED_PROVIDERS = {"openai", "anthropic", "deepseek", "openrouter"}
 
+@retry(
+    stop=stop_after_attempt(3),
+    wait=wait_exponential(multiplier=1, min=4, max=10),
+    retry=retry_if_exception_type((Exception,)),
+    reraise=True
+)
 async def acompletion(system_prompt: str,
                       user_prompt: str,
-                      model: str | None = None) -> str:
-    """Main async completion wrapper."""
+                      model: str | None = None,
+                      stream: bool = False) -> str | AsyncGenerator[str, None]:
+    """Main async completion wrapper with retry logic and optional streaming."""
     cfg      = load_settings()
     provider = cfg.provider                       # determined in config.py
 
@@ -139,5 +147,19 @@ async def acompletion(system_prompt: str,
             final_model,
         )
 
+    # Add streaming support
+    if stream:
+        kwargs["stream"] = True
+        
     resp = await litellm.acompletion(**kwargs)     # ✓ async request
-    return resp.choices[0].message.content.strip()
+    
+    if stream:
+        return _stream_response(resp)
+    else:
+        return resp.choices[0].message.content.strip()
+
+async def _stream_response(response) -> AsyncGenerator[str, None]:
+    """Handle streaming response from LiteLLM."""
+    async for chunk in response:
+        if chunk.choices and chunk.choices[0].delta.content:
+            yield chunk.choices[0].delta.content

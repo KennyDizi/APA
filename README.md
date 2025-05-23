@@ -1,8 +1,8 @@
-# APA – Async Prompt Application
+# APA – Async Prompt Optimizer
 
 APA is an **async, provider-agnostic** command–line tool that turns a plain
 `.txt` file into a structured prompt for large-language-model back-ends such as
-OpenAI, Anthropic, DeepSeek or OpenRouter.  
+`OpenAI`, `Anthropic`, `DeepSeek` or `OpenRouter`.
 It is built on top of **[LiteLLM](https://github.com/BerriAI/litellm)**, uses
 **tenacity** for retry/back-off and follows a lightweight Clean Architecture
 layout for easy maintenance and extension.
@@ -15,8 +15,8 @@ layout for easy maintenance and extension.
 * ⚡  Fully **async**; optional incremental streaming (`--stream` / `stream=true`)
 * 🔄  Automatic retry with exponential back-off (3 attempts)
 * 🤔  Provider-specific tweaks
-  * `reasoning_effort` for OpenAI *o3 / o4* reasoning models  
-  * Extended **Claude "thinking"** tokens for Anthropic models
+  * `reasoning_effort` for `OpenAI` *o3 / o4* reasoning models
+  * Extended **Claude `thinking`** tokens for Anthropic models
   * Temperature automatically omitted for models that ignore it
 * 🧑‍💻  `developer` role injection for models that support it
 * 🗄️  Clear configuration via TOML + environment variables
@@ -163,4 +163,4 @@ print(reply)
 
 ## License
 
-See [LICENSE](LICENSE) for full text. © 2025 Kenny Dizi.
+See [LICENSE](LICENSE) for full text. © 2025 [Kenny Dizi](https://github.com/KennyDizi).

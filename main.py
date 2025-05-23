@@ -16,10 +16,11 @@ def _read_prompt_file(path: pathlib.Path) -> str:
 def main() -> None:
     args         = _parse_args()
     user_prompt  = _read_prompt_file(args.msg_file)
-    sys_prompt   = load_settings().system_prompt
+    cfg          = load_settings()
+    sys_prompt   = cfg.system_prompt
+    stream       = cfg.stream
 
-    cfg    = load_settings()
-    result = asyncio.run(acompletion(sys_prompt, user_prompt, model=cfg.model))
+    result = asyncio.run(acompletion(sys_prompt, user_prompt, model=cfg.model, stream=stream))
     print(result)
 
 if __name__ == "__main__":

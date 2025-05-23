@@ -1,8 +1,11 @@
 temperature      = 0.2
 
+# enable incremental output (true / false)
+stream = false
+
 reasoning_effort = "high"        # open-ai only
 thinking_tokens  = 16384         # anthropic only
 
 # default model to send to LiteLLM (overrides provider-specific default)
-provider = "anthropic" # Could be openai, anthropic, deepseek or openrouter
-model = "claude-opus-4-20250514" # Should be o3, o4-mini, claude-sonnet-4-20250514, claude-opus-4-20250514
+provider = "openai" # Could be openai, anthropic, deepseek or openrouter
+model = "o3" # Should be o3, o4-mini, claude-sonnet-4-20250514, claude-opus-4-20250514

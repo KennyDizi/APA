@@ -20,6 +20,7 @@ class Settings:
     temperature:    float = 0.2
     reasoning_effort: str | None = "high"
     thinking_tokens:  int | None = 16384
+    stream:           bool = False
 
     # resolved at runtime (not in TOML)
     api_key: str | None = None

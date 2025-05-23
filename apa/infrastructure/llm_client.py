@@ -150,9 +150,9 @@ async def acompletion(system_prompt: str,
     # Add streaming support
     if stream:
         kwargs["stream"] = True
-        
+
     resp = await litellm.acompletion(**kwargs)     # ✓ async request
-    
+
     if stream:
         return _stream_response(resp)
     else:

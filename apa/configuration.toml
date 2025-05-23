@@ -1,0 +1,8 @@
+temperature      = 0.2
+
+reasoning_effort = "high"        # open-ai only
+thinking_tokens  = 16384         # anthropic only
+
+# default model to send to LiteLLM (overrides provider-specific default)
+provider = "openai" # Could be openai, anthropic, deepseek or openrouter
+model = "gpt-4o-mini"

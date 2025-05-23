@@ -1,4 +1,4 @@
-import litellm, asyncio, logging
+import litellm, logging
 from typing import Any
 from apa.config import load_settings
 
@@ -57,6 +57,9 @@ CLAUDE_EXTENDED_THINKING_MODELS = [
     "claude-opus-4-20250514",
 ]
 
+# providers the app currently supports
+ACCEPTED_PROVIDERS = {"openai", "anthropic", "deepseek", "openrouter"}
+
 async def acompletion(system_prompt: str,
                       user_prompt: str,
                       model: str | None = None) -> str:
@@ -64,7 +67,15 @@ async def acompletion(system_prompt: str,
     cfg      = load_settings()
     provider = cfg.provider                       # determined in config.py
 
-    final_model = model or cfg.model or provider
+    # ---------- provider check --------------------------------------
+    provider_lc = (provider or "").lower()
+    if provider_lc not in ACCEPTED_PROVIDERS:
+        raise ValueError(
+            f"Unsupported provider '{provider}'. "
+            f"Accepted providers: {', '.join(sorted(ACCEPTED_PROVIDERS))}"
+        )
+
+    final_model = model or cfg.model
 
     # ---------- messages -----------------------------------
     sys_role = "developer" if final_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"

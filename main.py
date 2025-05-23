@@ -13,15 +13,26 @@ def _read_prompt_file(path: pathlib.Path) -> str:
         sys.exit(f"[ERROR] File '{path}' missing or not a .txt file.")
     return path.read_text(encoding="utf-8")
 
-def main() -> None:
+async def _main() -> None:
     args         = _parse_args()
     user_prompt  = _read_prompt_file(args.msg_file)
     cfg          = load_settings()
     sys_prompt   = cfg.system_prompt
     stream       = cfg.stream
 
-    result = asyncio.run(acompletion(sys_prompt, user_prompt, model=cfg.model, stream=stream))
-    print(result)
+    result = await acompletion(sys_prompt, user_prompt, model=cfg.model, stream=stream)
+    
+    if stream:
+        # Handle streaming response
+        async for chunk in result:
+            print(chunk, end='', flush=True)
+        print()  # Add newline at the end
+    else:
+        # Handle non-streaming response
+        print(result)
+
+def main() -> None:
+    asyncio.run(_main())
 
 if __name__ == "__main__":
     main()

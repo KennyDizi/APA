@@ -1,6 +1,13 @@
-import litellm, asyncio
+import litellm, asyncio, logging
 from typing import Any
 from apa.config import load_settings
+
+# -------------------------------------------------------------------
+# logging setup
+logger = logging.getLogger(__name__)
+if not logger.handlers:                       # avoid duplicate handlers
+    logging.basicConfig(level=logging.INFO)
+# -------------------------------------------------------------------
 
 NO_SUPPORT_TEMPERATURE_MODELS = [
     "deepseek/deepseek-reasoner",
@@ -73,14 +80,49 @@ async def acompletion(system_prompt: str,
         "api_key":  cfg.api_key,
     }
 
-    if final_model not in NO_SUPPORT_TEMPERATURE_MODELS:
+    # -------- temperature ------------------------------------------
+    if final_model in NO_SUPPORT_TEMPERATURE_MODELS:
+        logger.info(
+            "Model '%s' is in NO_SUPPORT_TEMPERATURE_MODELS – skipping temperature.",
+            final_model,
+        )
+    else:
+        logger.info(
+            "Model '%s' supports temperature – adding temperature=%s.",
+            final_model,
+            cfg.temperature,
+        )
         kwargs["temperature"] = cfg.temperature
 
-    if final_model in SUPPORT_REASONING_EFFORT_MODELS and cfg.reasoning_effort:
-        kwargs["reasoning_effort"] = cfg.reasoning_effort
+    # -------- reasoning_effort -------------------------------------
+    if final_model in SUPPORT_REASONING_EFFORT_MODELS:
+        logger.info(
+            "Model '%s' is in SUPPORT_REASONING_EFFORT_MODELS – adding reasoning_effort=%s.",
+            final_model,
+            cfg.reasoning_effort,
+        )
+        if cfg.reasoning_effort:
+            kwargs["reasoning_effort"] = cfg.reasoning_effort
+    else:
+        logger.info(
+            "Model '%s' is NOT in SUPPORT_REASONING_EFFORT_MODELS – no reasoning_effort.",
+            final_model,
+        )
 
-    if final_model in CLAUDE_EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
-        kwargs["thinking_tokens"]  = cfg.thinking_tokens
+    # -------- thinking_tokens --------------------------------------
+    if final_model in CLAUDE_EXTENDED_THINKING_MODELS:
+        logger.info(
+            "Model '%s' is in CLAUDE_EXTENDED_THINKING_MODELS – adding thinking_tokens=%s.",
+            final_model,
+            cfg.thinking_tokens,
+        )
+        if cfg.thinking_tokens:
+            kwargs["thinking_tokens"] = cfg.thinking_tokens
+    else:
+        logger.info(
+            "Model '%s' is NOT in CLAUDE_EXTENDED_THINKING_MODELS – no thinking_tokens.",
+            final_model,
+        )
 
     resp = await litellm.acompletion(**kwargs)     # ✓ async request
     return resp.choices[0].message.content.strip()

@@ -1,7 +1,7 @@
 temperature      = 0.2
 
 # enable incremental output (true / false)
-stream = false
+stream = true
 
 reasoning_effort = "high"        # open-ai only
 thinking_tokens  = 16384         # anthropic only

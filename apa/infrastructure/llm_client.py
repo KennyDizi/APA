@@ -161,6 +161,10 @@ async def acompletion(system_prompt: str,
 
 async def _stream_response(response) -> AsyncGenerator[str, None]:
     """Handle streaming response from LiteLLM."""
-    async for chunk in response:
-        if chunk.choices and chunk.choices[0].delta.content:
-            yield chunk.choices[0].delta.content
+    try:
+        async for chunk in response:
+            if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+    except Exception as e:
+        logger.error(f"Error during streaming response: {e}")
+        raise

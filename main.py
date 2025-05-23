@@ -19,9 +19,7 @@ def main() -> None:
     sys_prompt   = load_settings().system_prompt
 
     cfg    = load_settings()
-    result = asyncio.run(
-        acompletion(sys_prompt, user_prompt, template=None, model=cfg.model)
-    )
+    result = asyncio.run(acompletion(sys_prompt, user_prompt, model=cfg.model))
     print(result)
 
 if __name__ == "__main__":

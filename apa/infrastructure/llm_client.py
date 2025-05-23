@@ -86,9 +86,10 @@ async def acompletion(system_prompt: str,
     final_model = model or cfg.model
 
     # ---------- messages -----------------------------------
-    sys_role = "developer" if final_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
+    actual_role = "developer" if final_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
+    logger.info(f"actual_role: {actual_role}")
     messages = [
-        {"role": sys_role, "content": system_prompt},
+        {"role": actual_role, "content": system_prompt},
         {"role": "user",   "content": user_prompt},
     ]
 

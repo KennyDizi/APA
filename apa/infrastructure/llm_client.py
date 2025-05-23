@@ -128,7 +128,11 @@ async def acompletion(system_prompt: str,
             cfg.thinking_tokens,
         )
         if cfg.thinking_tokens:
-            kwargs["thinking_tokens"] = cfg.thinking_tokens
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": cfg.thinking_tokens
+            }
+            kwargs["temperature"] = 1.0
     else:
         logger.info(
             "Model '%s' is NOT in CLAUDE_EXTENDED_THINKING_MODELS – no thinking_tokens.",

@@ -15,12 +15,13 @@ PROVIDER_ENV_MAP: dict[str, str] = {
 
 @_dc.dataclass(slots=True)
 class Settings:
-    system_prompt:  str | None = None          # may come from separate *.toml
+    system_prompt:  str | None = None
     model:          str | None = None
     temperature:    float = 0.2
     reasoning_effort: str | None = "high"
     thinking_tokens:  int | None = 16384
     stream:           bool = False
+    programming_language: str | None = None
 
     # resolved at runtime (not in TOML)
     api_key: str | None = None
@@ -30,9 +31,16 @@ def load_settings() -> Settings:
     raw = tomllib.loads(_cfg_path.read_text()) if _cfg_path.exists() else {}
     st  = Settings(**raw)
 
+    # programming_language (use default "Python" if missing)
+    programming_language = raw.get("programming_language", "Python") or "Python"
+
     # ----------------   system prompt  -----------------
     if not (st.system_prompt and str(st.system_prompt).strip()):
-        st.system_prompt = _load_system_prompt()   # fall-back to separate file
+        st.system_prompt = _load_system_prompt()
+
+    # Render template placeholder in system_prompt (safe substitution)
+    from string import Template
+    st.system_prompt = Template(st.system_prompt).safe_substitute(programming_language=programming_language)
 
     # --------- detect provider & API key from environment -------------
     for _prov, _env in PROVIDER_ENV_MAP.items():

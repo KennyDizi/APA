@@ -179,6 +179,7 @@ temperature      = 0.2           # Creativity level (0.0-1.0)
 stream           = true          # Enable real-time streaming
 
 # Provider-specific settings
+programming_language = "Python"  # Default language injected into system prompt
 reasoning_effort = "high"        # OpenAI o3/o4 models only
 thinking_tokens  = 16384         # Anthropic Claude models only
 
@@ -187,18 +188,22 @@ provider = "openai"              # openai | anthropic | deepseek | openrouter
 model    = "o3"                  # Model identifier
 ```
 
-### 🤖 `apa/system_prompt.toml`
+### 🤖 `apa/system_prompt.toml` (templated)
 
 Customize the AI assistant's behavior:
 ```toml
 system_prompt = """
 ## Role
-You are an advanced AI programming assistant...
+You are an advanced AI programming assistant specializing in $programming_language programming language...
 
 ## Task
 Your tasks include...
 """
 ```
+```
+
+The only variable required is `programming_language`. The value comes from `configuration.toml`; if omitted it defaults to "Python".
+
 
 ### 🔐 Environment Variables
 

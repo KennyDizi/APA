@@ -22,6 +22,10 @@ class Settings:
     thinking_tokens:  int | None = 16384
     stream:           bool = False
     programming_language: str | None = None
+    
+    # fallback configuration
+    fallback_provider: str | None = None
+    fallback_model: str | None = None
 
     # resolved at runtime (not in TOML)
     api_key: str | None = None

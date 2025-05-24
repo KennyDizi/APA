@@ -186,6 +186,10 @@ thinking_tokens  = 16384         # Anthropic Claude models only
 # Model selection
 provider = "openai"              # openai | anthropic | deepseek | openrouter
 model    = "o3"                  # Model identifier
+
+# Fallback configuration (optional)
+fallback_provider = "anthropic"  # Provider to use if primary fails
+fallback_model = "claude-sonnet-4-20250514"  # Model to use if primary fails
 ```
 
 ### 🤖 `apa/system_prompt.toml` (templated)
@@ -233,8 +237,30 @@ OPENROUTER_API_KEY=...
 
 APA automatically retries failed requests:
 - **3 attempts** maximum
-- **Exponential backoff**: 4-10 seconds
+- **Exponential backoff**: 2-8 seconds
 - **Smart error handling**
+
+### Fallback Mechanism
+
+APA includes an intelligent fallback system that automatically switches providers when the primary fails:
+
+- **Primary attempts**: 3 tries with exponential backoff
+- **Automatic switchover**: Seamlessly transitions to fallback provider
+- **Provider hot-swap**: Loads provider-specific settings without restart
+- **Configurable**: Set `fallback_provider` and `fallback_model` in `configuration.toml`
+
+To disable fallback, simply omit these keys from your configuration.
+
+Example configuration:
+```toml
+# Primary provider
+provider = "openai"
+model = "gpt-4"
+
+# Fallback provider (activated after 3 primary failures)
+fallback_provider = "anthropic"
+fallback_model = "claude-sonnet-4-20250514"
+```
 
 ---
 

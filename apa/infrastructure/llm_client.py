@@ -1,6 +1,6 @@
-import litellm, logging
+import litellm, logging, asyncio
 from typing import Any, AsyncGenerator
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from dataclasses import dataclass
 from apa.config import load_settings
 
 # -------------------------------------------------------------------
@@ -9,6 +9,17 @@ logger = logging.getLogger(__name__)
 if not logger.handlers:                       # avoid duplicate handlers
     logging.basicConfig(level=logging.INFO)
 # -------------------------------------------------------------------
+
+class CompletionFailureError(Exception):
+    """Raised when both primary and fallback providers fail."""
+    pass
+
+@dataclass
+class ProviderConfig:
+    """Encapsulates provider-specific configuration."""
+    provider: str
+    model: str
+    api_key: str
 
 NO_SUPPORT_TEMPERATURE_MODELS = [
     "deepseek/deepseek-reasoner",
@@ -61,103 +72,187 @@ CLAUDE_EXTENDED_THINKING_MODELS = [
 # providers the app currently supports
 ACCEPTED_PROVIDERS = {"openai", "anthropic", "deepseek", "openrouter"}
 
-@retry(
-    stop=stop_after_attempt(3),
-    wait=wait_exponential(multiplier=1, min=4, max=10),
-    retry=retry_if_exception_type((Exception,)),
-    reraise=True
-)
-async def acompletion(system_prompt: str,
-                      user_prompt: str,
-                      model: str | None = None,
-                      stream: bool = False) -> str | AsyncGenerator[str, None]:
-    """Main async completion wrapper with retry logic and optional streaming."""
-    cfg      = load_settings()
-    provider = cfg.provider                       # determined in config.py
+def _load_provider_config(provider: str, model: str, cfg: Any) -> ProviderConfig:
+    """Load provider-specific configuration including API key."""
+    from apa.config import PROVIDER_ENV_MAP
+    import os
 
-    # ---------- provider check --------------------------------------
-    provider_lc = (provider or "").lower()
+    provider_lc = provider.lower()
     if provider_lc not in ACCEPTED_PROVIDERS:
         raise ValueError(
             f"Unsupported provider '{provider}'. "
             f"Accepted providers: {', '.join(sorted(ACCEPTED_PROVIDERS))}"
         )
 
-    final_model = model or cfg.model
+    # Get API key for the specific provider
+    env_var = PROVIDER_ENV_MAP.get(provider_lc)
+    if not env_var:
+        raise ValueError(f"No environment variable mapping for provider '{provider}'")
 
-    # ---------- messages -----------------------------------
-    actual_role = "developer" if final_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
-    logger.info(f"actual_role: {actual_role}")
-    messages = [
-        {"role": actual_role, "content": system_prompt},
-        {"role": "user",   "content": user_prompt},
-    ]
+    api_key = os.getenv(env_var)
+    if not api_key:
+        raise EnvironmentError(f"Missing API key for {provider} - set {env_var}")
 
-    # ---------- kwargs -------------------------------------
+    return ProviderConfig(provider=provider_lc, model=model, api_key=api_key)
+
+async def _execute_completion(
+    provider_config: ProviderConfig,
+    messages: list[dict[str, str]],
+    cfg: Any,
+    stream: bool = False,
+    attempt: int = 1,
+    is_fallback: bool = False
+) -> str | AsyncGenerator[str, None]:
+    """Execute a single completion attempt with specific provider configuration."""
+    provider_type = "fallback" if is_fallback else "primary"
+    logger.info(
+        f"Attempting {provider_type} completion with {provider_config.provider}/{provider_config.model} "
+        f"(attempt {attempt})"
+    )
+
     kwargs: dict[str, Any] = {
-        "model":    final_model,
+        "model": provider_config.model,
         "messages": messages,
-        "api_key":  cfg.api_key,
+        "api_key": provider_config.api_key,
     }
 
-    # -------- temperature ------------------------------------------
-    if final_model in NO_SUPPORT_TEMPERATURE_MODELS:
-        logger.info(
-            "Model '%s' is in NO_SUPPORT_TEMPERATURE_MODELS – skipping temperature.",
-            final_model,
-        )
+    # Temperature handling
+    if provider_config.model in NO_SUPPORT_TEMPERATURE_MODELS:
+        logger.info(f"Model '{provider_config.model}' doesn't support temperature")
     else:
-        logger.info(
-            "Model '%s' supports temperature – adding temperature=%s.",
-            final_model,
-            cfg.temperature,
-        )
         kwargs["temperature"] = cfg.temperature
 
-    # -------- reasoning_effort -------------------------------------
-    if final_model in SUPPORT_REASONING_EFFORT_MODELS:
-        logger.info(
-            "Model '%s' is in SUPPORT_REASONING_EFFORT_MODELS – adding reasoning_effort=%s.",
-            final_model,
-            cfg.reasoning_effort,
-        )
-        if cfg.reasoning_effort:
-            kwargs["reasoning_effort"] = cfg.reasoning_effort
-    else:
-        logger.info(
-            "Model '%s' is NOT in SUPPORT_REASONING_EFFORT_MODELS – no reasoning_effort.",
-            final_model,
-        )
+    # Reasoning effort handling
+    if provider_config.model in SUPPORT_REASONING_EFFORT_MODELS and cfg.reasoning_effort:
+        logger.info(f"Adding reasoning_effort={cfg.reasoning_effort}")
+        kwargs["reasoning_effort"] = cfg.reasoning_effort
 
-    # -------- thinking_tokens --------------------------------------
-    if final_model in CLAUDE_EXTENDED_THINKING_MODELS:
-        logger.info(
-            "Model '%s' is in CLAUDE_EXTENDED_THINKING_MODELS – adding thinking_tokens=%s.",
-            final_model,
-            cfg.thinking_tokens,
-        )
-        if cfg.thinking_tokens:
-            kwargs["thinking"] = {
-                "type": "enabled",
-                "budget_tokens": cfg.thinking_tokens
-            }
-            kwargs["temperature"] = 1.0
-    else:
-        logger.info(
-            "Model '%s' is NOT in CLAUDE_EXTENDED_THINKING_MODELS – no thinking_tokens.",
-            final_model,
-        )
+    # Claude thinking tokens handling
+    if provider_config.model in CLAUDE_EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
+        logger.info(f"Adding thinking_tokens={cfg.thinking_tokens}")
+        kwargs["thinking"] = {
+            "type": "enabled",
+            "budget_tokens": cfg.thinking_tokens
+        }
+        kwargs["temperature"] = 1.0
 
-    # Add streaming support
     if stream:
         kwargs["stream"] = True
 
-    resp = await litellm.acompletion(**kwargs)     # ✓ async request
+    try:
+        resp = await litellm.acompletion(**kwargs)
 
-    if stream:
-        return _stream_response(resp)
-    else:
-        return resp.choices[0].message.content.strip()
+        if stream:
+            return _stream_response(resp)
+        else:
+            content = resp.choices[0].message.content.strip()
+            if not content:  # Empty response is considered a failure
+                raise ValueError("Received empty response from model")
+            return content
+
+    except Exception as e:
+        logger.error(
+            f"{provider_type.capitalize()} provider {provider_config.provider}/{provider_config.model} "
+            f"failed on attempt {attempt}: {type(e).__name__}: {e}"
+        )
+        raise
+
+async def acompletion(
+    system_prompt: str,
+    user_prompt: str,
+    model: str | None = None,
+    stream: bool = False
+) -> str | AsyncGenerator[str, None]:
+    """
+    Main async completion wrapper with automatic fallback mechanism.
+
+    Attempts the primary provider/model up to 3 times, then switches to
+    the fallback provider/model if configured.
+
+    Args:
+        system_prompt: System prompt to guide the model
+        user_prompt: User's input prompt
+        model: Override model (uses config default if None)
+        stream: Whether to stream the response
+
+    Returns:
+        Completion text or async generator for streaming
+
+    Raises:
+        CompletionFailureError: When both primary and fallback providers fail
+    """
+    cfg = load_settings()
+
+    # Prepare primary provider configuration
+    primary_model = model or cfg.model
+    primary_config = _load_provider_config(cfg.provider, primary_model, cfg)
+
+    # Prepare messages
+    actual_role = "developer" if primary_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
+    logger.info(f"Using role: {actual_role}")
+    messages = [
+        {"role": actual_role, "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
+    # Try primary provider up to 3 times
+    for attempt in range(1, 4):
+        try:
+            return await _execute_completion(
+                primary_config, messages, cfg, stream, attempt, is_fallback=False
+            )
+        except Exception as e:
+            if attempt == 3:
+                logger.warning(
+                    f"Primary provider {primary_config.provider}/{primary_config.model} "
+                    f"failed after 3 attempts. Last error: {e}"
+                )
+                break
+            # Wait before retry (exponential backoff)
+            await asyncio.sleep(2 ** attempt)
+
+    # Check if fallback is configured
+    if not cfg.fallback_provider or not cfg.fallback_model:
+        raise CompletionFailureError(
+            f"Primary provider {primary_config.provider}/{primary_config.model} failed "
+            "and no fallback is configured"
+        )
+
+    # Try fallback provider
+    logger.info(f"Switching to fallback provider {cfg.fallback_provider}/{cfg.fallback_model}")
+
+    try:
+        fallback_config = _load_provider_config(cfg.fallback_provider, cfg.fallback_model, cfg)
+
+        # Update messages role if needed for fallback model
+        if cfg.fallback_model in SUPPORT_DEVELOPER_MESSAGE_MODELS and actual_role != "developer":
+            messages[0]["role"] = "developer"
+            logger.info("Updated role to 'developer' for fallback model")
+        elif cfg.fallback_model not in SUPPORT_DEVELOPER_MESSAGE_MODELS and actual_role == "developer":
+            messages[0]["role"] = "system"
+            logger.info("Updated role to 'system' for fallback model")
+
+        # Try fallback up to 3 times
+        for attempt in range(1, 4):
+            try:
+                return await _execute_completion(
+                    fallback_config, messages, cfg, stream, attempt, is_fallback=True
+                )
+            except Exception as e:
+                if attempt == 3:
+                    raise CompletionFailureError(
+                        f"Both primary ({primary_config.provider}/{primary_config.model}) and "
+                        f"fallback ({fallback_config.provider}/{fallback_config.model}) providers failed. "
+                        f"Last error: {e}"
+                    )
+                await asyncio.sleep(2 ** attempt)
+
+    except Exception as e:
+        if isinstance(e, CompletionFailureError):
+            raise
+        raise CompletionFailureError(
+            f"Failed to initialize fallback provider {cfg.fallback_provider}: {e}"
+        )
 
 async def _stream_response(response) -> AsyncGenerator[str, None]:
     """Handle streaming response from LiteLLM."""

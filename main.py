@@ -20,8 +20,8 @@ async def _main() -> None:
     sys_prompt   = cfg.system_prompt
     stream       = cfg.stream
 
-    result = await acompletion(sys_prompt, user_prompt, model=cfg.model, stream=stream)
-    
+    result = await acompletion(sys_prompt, user_prompt, model=cfg.model, stream=stream, settings=cfg)
+
     if stream:
         # Handle streaming response
         async for chunk in result:

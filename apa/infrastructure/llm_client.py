@@ -3,12 +3,11 @@ from typing import Any, AsyncGenerator
 from dataclasses import dataclass
 from apa.config import load_settings
 
-# -------------------------------------------------------------------
 # logging setup
 logger = logging.getLogger(__name__)
-if not logger.handlers:                       # avoid duplicate handlers
+if not logger.handlers:
+    # avoid duplicate handlers
     logging.basicConfig(level=logging.INFO)
-# -------------------------------------------------------------------
 
 class CompletionFailureError(Exception):
     """Raised when both primary and fallback providers fail."""
@@ -160,8 +159,10 @@ async def _execute_completion(
 async def acompletion(
     system_prompt: str,
     user_prompt: str,
+    *,
     model: str | None = None,
-    stream: bool = False
+    stream: bool = False,
+    settings: Any | None = None
 ) -> str | AsyncGenerator[str, None]:
     """
     Main async completion wrapper with automatic fallback mechanism.
@@ -174,6 +175,7 @@ async def acompletion(
         user_prompt: User's input prompt
         model: Override model (uses config default if None)
         stream: Whether to stream the response
+        settings: Pre-loaded Settings instance (skips duplicate load_settings())
 
     Returns:
         Completion text or async generator for streaming
@@ -181,7 +183,7 @@ async def acompletion(
     Raises:
         CompletionFailureError: When both primary and fallback providers fail
     """
-    cfg = load_settings()
+    cfg = settings or load_settings()
 
     # Prepare primary provider configuration
     primary_model = model or cfg.model

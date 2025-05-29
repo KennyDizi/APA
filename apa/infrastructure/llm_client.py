@@ -105,13 +105,14 @@ async def _execute_completion(
 ) -> str | AsyncGenerator[str, None]:
     """Execute a single completion attempt with specific provider configuration."""
     provider_type = "fallback" if is_fallback else "primary"
+    model = f"{provider_config.provider}/{provider_config.model}"
     logger.info(
-        f"Attempting {provider_type} completion with {provider_config.provider}/{provider_config.model} "
+        f"Attempting {provider_type} completion with {model} "
         f"(attempt {attempt})"
     )
 
     kwargs: dict[str, Any] = {
-        "model": provider_config.model,
+        "model": model,
         "messages": messages,
         "api_key": provider_config.api_key,
     }

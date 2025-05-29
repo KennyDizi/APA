@@ -71,7 +71,7 @@ CLAUDE_EXTENDED_THINKING_MODELS = [
 # providers the app currently supports
 ACCEPTED_PROVIDERS = {"openai", "anthropic", "deepseek", "openrouter"}
 
-def _load_provider_config(provider: str, model: str, cfg: Any) -> ProviderConfig:
+def _load_provider_config(provider: str, model: str) -> ProviderConfig:
     """Load provider-specific configuration including API key."""
     from apa.config import PROVIDER_ENV_MAP
     import os
@@ -187,7 +187,7 @@ async def acompletion(
 
     # Prepare primary provider configuration
     primary_model = model or cfg.model
-    primary_config = _load_provider_config(cfg.provider, primary_model, cfg)
+    primary_config = _load_provider_config(cfg.provider, primary_model)
 
     # Prepare messages
     actual_role = "developer" if primary_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
@@ -224,7 +224,7 @@ async def acompletion(
     logger.info(f"Switching to fallback provider {cfg.fallback_provider}/{cfg.fallback_model}")
 
     try:
-        fallback_config = _load_provider_config(cfg.fallback_provider, cfg.fallback_model, cfg)
+        fallback_config = _load_provider_config(cfg.fallback_provider, cfg.fallback_model)
 
         # Update messages role if needed for fallback model
         if cfg.fallback_model in SUPPORT_DEVELOPER_MESSAGE_MODELS and actual_role != "developer":

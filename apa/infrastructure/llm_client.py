@@ -72,6 +72,58 @@ CLAUDE_EXTENDED_THINKING_MODELS = frozenset({
 # providers the app currently supports
 ACCEPTED_PROVIDERS = frozenset({"openai", "anthropic", "deepseek", "openrouter"})
 
+def _prepare_completion_kwargs(
+    provider_config: ProviderConfig,
+    messages: list[dict[str, str]],
+    cfg: Any,
+    stream: bool = False
+) -> dict[str, Any]:
+    """Prepare kwargs for litellm completion based on model capabilities."""
+    model = f"{provider_config.provider}/{provider_config.model}"
+    kwargs: dict[str, Any] = {
+        "model": model,
+        "messages": messages,
+        "api_key": provider_config.api_key,
+    }
+
+    # Temperature handling
+    if provider_config.model in NO_SUPPORT_TEMPERATURE_MODELS:
+        logger.info(f"Model '{provider_config.model}' doesn't support temperature")
+    else:
+        kwargs["temperature"] = cfg.temperature
+
+    # Reasoning effort handling
+    if provider_config.model in SUPPORT_REASONING_EFFORT_MODELS and cfg.reasoning_effort:
+        logger.info(f"Adding reasoning_effort={cfg.reasoning_effort}")
+        kwargs["reasoning_effort"] = cfg.reasoning_effort
+
+    # Claude thinking tokens handling
+    if provider_config.model in CLAUDE_EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
+        logger.info(f"Adding thinking_tokens={cfg.thinking_tokens}")
+        kwargs["thinking"] = {
+            "type": "enabled",
+            "budget_tokens": cfg.thinking_tokens
+        }
+        kwargs["temperature"] = 1.0
+
+    if stream:
+        kwargs["stream"] = True
+
+    return kwargs
+
+def _prepare_messages(
+    system_prompt: str,
+    user_prompt: str,
+    model: str
+) -> list[dict[str, str]]:
+    """Prepare messages with appropriate role based on model capabilities."""
+    role = "developer" if model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
+    logger.info(f"Using role: {role} for model: {model}")
+    return [
+        {"role": role, "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+
 def _load_provider_config(provider: str, model: str) -> ProviderConfig:
     """Load provider-specific configuration including API key."""
     from apa.config import PROVIDER_ENV_MAP
@@ -111,34 +163,7 @@ async def _execute_completion(
         f"(attempt {attempt})"
     )
 
-    kwargs: dict[str, Any] = {
-        "model": model,
-        "messages": messages,
-        "api_key": provider_config.api_key,
-    }
-
-    # Temperature handling
-    if provider_config.model in NO_SUPPORT_TEMPERATURE_MODELS:
-        logger.info(f"Model '{provider_config.model}' doesn't support temperature")
-    else:
-        kwargs["temperature"] = cfg.temperature
-
-    # Reasoning effort handling
-    if provider_config.model in SUPPORT_REASONING_EFFORT_MODELS and cfg.reasoning_effort:
-        logger.info(f"Adding reasoning_effort={cfg.reasoning_effort}")
-        kwargs["reasoning_effort"] = cfg.reasoning_effort
-
-    # Claude thinking tokens handling
-    if provider_config.model in CLAUDE_EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
-        logger.info(f"Adding thinking_tokens={cfg.thinking_tokens}")
-        kwargs["thinking"] = {
-            "type": "enabled",
-            "budget_tokens": cfg.thinking_tokens
-        }
-        kwargs["temperature"] = 1.0
-
-    if stream:
-        kwargs["stream"] = True
+    kwargs = _prepare_completion_kwargs(provider_config, messages, cfg, stream)
 
     try:
         resp = await litellm.acompletion(**kwargs)
@@ -192,12 +217,7 @@ async def acompletion(
     primary_config = _load_provider_config(cfg.provider, primary_model)
 
     # Prepare messages
-    actual_role = "developer" if primary_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
-    logger.info(f"Using role: {actual_role}")
-    messages = [
-        {"role": actual_role, "content": system_prompt},
-        {"role": "user", "content": user_prompt},
-    ]
+    messages = _prepare_messages(system_prompt, user_prompt, primary_model)
 
     # Try primary provider up to 3 times
     for attempt in range(1, 4):
@@ -228,19 +248,14 @@ async def acompletion(
     try:
         fallback_config = _load_provider_config(cfg.fallback_provider, cfg.fallback_model)
 
-        # Update messages role if needed for fallback model
-        if cfg.fallback_model in SUPPORT_DEVELOPER_MESSAGE_MODELS and actual_role != "developer":
-            messages[0]["role"] = "developer"
-            logger.info("Updated role to 'developer' for fallback model")
-        elif cfg.fallback_model not in SUPPORT_DEVELOPER_MESSAGE_MODELS and actual_role == "developer":
-            messages[0]["role"] = "system"
-            logger.info("Updated role to 'system' for fallback model")
+        # Prepare messages for fallback model
+        fallback_messages = _prepare_messages(system_prompt, user_prompt, cfg.fallback_model)
 
         # Try fallback up to 3 times
         for attempt in range(1, 4):
             try:
                 return await _execute_completion(
-                    fallback_config, messages, cfg, stream, attempt, is_fallback=True
+                    fallback_config, fallback_messages, cfg, stream, attempt, is_fallback=True
                 )
             except Exception as e:
                 if attempt == 3:

@@ -20,9 +20,9 @@ class ProviderConfig:
     model: str
     api_key: str
 
-NO_SUPPORT_TEMPERATURE_MODELS = [
+NO_SUPPORT_TEMPERATURE_MODELS = frozenset({
     "deepseek/deepseek-reasoner",
-    "openrouter/deepseek/deepseek-r1-0528"
+    "openrouter/deepseek/deepseek-r1-0528",
     "o1-mini",
     "o1-mini-2024-09-12",
     "o1",
@@ -34,18 +34,18 @@ NO_SUPPORT_TEMPERATURE_MODELS = [
     "o3-2025-04-16",
     "o4-mini",
     "o4-mini-2025-04-16",
-]
+})
 
-SUPPORT_REASONING_EFFORT_MODELS = [
+SUPPORT_REASONING_EFFORT_MODELS = frozenset({
     "o3-mini",
     "o3-mini-2025-01-31",
     "o3",
     "o3-2025-04-16",
     "o4-mini",
     "o4-mini-2025-04-16",
-]
+})
 
-SUPPORT_DEVELOPER_MESSAGE_MODELS = [
+SUPPORT_DEVELOPER_MESSAGE_MODELS = frozenset({
     "o1",
     "o1-2024-12-17",
     "o3-mini",
@@ -57,20 +57,20 @@ SUPPORT_DEVELOPER_MESSAGE_MODELS = [
     "o4-mini",
     "o4-mini-2025-04-16",
     "gpt-4.1",
-    "gpt-4.1-2025-04-14"
-]
+    "gpt-4.1-2025-04-14",
+})
 
-CLAUDE_EXTENDED_THINKING_MODELS = [
+CLAUDE_EXTENDED_THINKING_MODELS = frozenset({
     "anthropic/claude-3-7-sonnet-20250219",
     "claude-3-7-sonnet-20250219",
     "anthropic/claude-sonnet-4-20250514",
     "claude-sonnet-4-20250514",
     "anthropic/claude-opus-4-20250514",
     "claude-opus-4-20250514",
-]
+})
 
 # providers the app currently supports
-ACCEPTED_PROVIDERS = {"openai", "anthropic", "deepseek", "openrouter"}
+ACCEPTED_PROVIDERS = frozenset({"openai", "anthropic", "deepseek", "openrouter"})
 
 def _load_provider_config(provider: str, model: str) -> ProviderConfig:
     """Load provider-specific configuration including API key."""

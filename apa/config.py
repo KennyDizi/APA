@@ -21,7 +21,7 @@ class Settings:
     reasoning_effort: str | None = "high"
     thinking_tokens:  int | None = 16384
     stream:           bool = False
-    programming_language: str | None = None
+    programming_language: str = "Python"
     
     # fallback configuration
     fallback_provider: str | None = None
@@ -35,8 +35,9 @@ def load_settings() -> Settings:
     raw = tomllib.loads(_cfg_path.read_text()) if _cfg_path.exists() else {}
     st  = Settings(**raw)
 
-    # programming_language (use default "Python" if missing)
-    programming_language = raw.get("programming_language", "Python") or "Python"
+    # ----------- normalize programming_language -----------
+    if not (st.programming_language and st.programming_language.strip()):
+        st.programming_language = "Python"
 
     # ----------------   system prompt  -----------------
     if not (st.system_prompt and str(st.system_prompt).strip()):
@@ -44,15 +45,22 @@ def load_settings() -> Settings:
 
     # Render template placeholder in system_prompt (safe substitution)
     from string import Template
-    st.system_prompt = Template(st.system_prompt).safe_substitute(programming_language=programming_language)
+    st.system_prompt = Template(st.system_prompt).safe_substitute(
+        programming_language=st.programming_language
+    )
 
-    # --------- detect provider & API key from environment -------------
-    for _prov, _env in PROVIDER_ENV_MAP.items():
-        _key = os.getenv(_env)
-        if _key:
-            st.api_key  = _key
-            st.provider = _prov
-            break
+    # ------------- provider & API key resolution -------------
+    if not st.provider:                         # nothing set in TOML
+        for _prov, _env in PROVIDER_ENV_MAP.items():
+            _key = os.getenv(_env)
+            if _key:
+                st.provider = _prov
+                st.api_key = _key
+                break
+    else:                                       # provider came from TOML
+        env_var = PROVIDER_ENV_MAP.get(st.provider.lower())
+        if env_var:
+            st.api_key = os.getenv(env_var)
 
     if not st.api_key:
         raise EnvironmentError(

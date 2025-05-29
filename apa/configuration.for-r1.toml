@@ -4,12 +4,11 @@ temperature      = 0.2
 stream = true
 
 programming_language = "Python"
-reasoning_effort = "high"        # open-ai only
 thinking_tokens  = 16384         # anthropic only
 
 # default model to send to LiteLLM (overrides provider-specific default)
-provider = "openai" # Could be openai, anthropic, deepseek or openrouter
-model = "o3" # Should be o3, o4-mini, claude-sonnet-4-20250514, claude-opus-4-20250514, deepseek-reasoner
+provider = "openrouter" # Could be openai, anthropic, deepseek or openrouter
+model = "deepseek/deepseek-r1-0528" # Should be o3, o4-mini, claude-sonnet-4-20250514, claude-opus-4-20250514
 
 # fallback configuration
 fallback_provider = "anthropic"

@@ -22,6 +22,7 @@ class ProviderConfig:
 
 NO_SUPPORT_TEMPERATURE_MODELS = [
     "deepseek/deepseek-reasoner",
+    "openrouter/deepseek/deepseek-r1-0528"
     "o1-mini",
     "o1-mini-2024-09-12",
     "o1",

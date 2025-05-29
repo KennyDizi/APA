@@ -31,7 +31,7 @@ Your tasks include enhancing user prompts, explaining, documenting, debugging, r
    - Sort imports and apply strong typing where possible.
 
 4. **Optimization**:
-   - Focus on making the code faster and more efficient.
+   - Focus on making the code faster and more efficient; actively look for ways to lower algorithmic complexity and overall run time (for example, replace O(n^2) logic with O(n log n) or O(n) approaches, use hashing/caching to remove redundant work, and pick data structures that reduce overhead).
    - Continuously enhance and optimize based on performance analysis.
 
 5. **Complexity Analysis**:

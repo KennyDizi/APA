@@ -22,6 +22,7 @@ class ProviderConfig:
 
 NO_SUPPORT_TEMPERATURE_MODELS = [
     "deepseek/deepseek-reasoner",
+    "openrouter/deepseek/deepseek-r1-0528"
     "o1-mini",
     "o1-mini-2024-09-12",
     "o1",
@@ -71,7 +72,7 @@ CLAUDE_EXTENDED_THINKING_MODELS = [
 # providers the app currently supports
 ACCEPTED_PROVIDERS = {"openai", "anthropic", "deepseek", "openrouter"}
 
-def _load_provider_config(provider: str, model: str, cfg: Any) -> ProviderConfig:
+def _load_provider_config(provider: str, model: str) -> ProviderConfig:
     """Load provider-specific configuration including API key."""
     from apa.config import PROVIDER_ENV_MAP
     import os
@@ -104,13 +105,14 @@ async def _execute_completion(
 ) -> str | AsyncGenerator[str, None]:
     """Execute a single completion attempt with specific provider configuration."""
     provider_type = "fallback" if is_fallback else "primary"
+    model = f"{provider_config.provider}/{provider_config.model}"
     logger.info(
-        f"Attempting {provider_type} completion with {provider_config.provider}/{provider_config.model} "
+        f"Attempting {provider_type} completion with {model} "
         f"(attempt {attempt})"
     )
 
     kwargs: dict[str, Any] = {
-        "model": provider_config.model,
+        "model": model,
         "messages": messages,
         "api_key": provider_config.api_key,
     }
@@ -187,7 +189,7 @@ async def acompletion(
 
     # Prepare primary provider configuration
     primary_model = model or cfg.model
-    primary_config = _load_provider_config(cfg.provider, primary_model, cfg)
+    primary_config = _load_provider_config(cfg.provider, primary_model)
 
     # Prepare messages
     actual_role = "developer" if primary_model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
@@ -224,7 +226,7 @@ async def acompletion(
     logger.info(f"Switching to fallback provider {cfg.fallback_provider}/{cfg.fallback_model}")
 
     try:
-        fallback_config = _load_provider_config(cfg.fallback_provider, cfg.fallback_model, cfg)
+        fallback_config = _load_provider_config(cfg.fallback_provider, cfg.fallback_model)
 
         # Update messages role if needed for fallback model
         if cfg.fallback_model in SUPPORT_DEVELOPER_MESSAGE_MODELS and actual_role != "developer":

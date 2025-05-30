@@ -22,7 +22,7 @@ class Settings:
     thinking_tokens:  int | None = 16384
     stream:           bool = False
     programming_language: str = "Python"
-    
+
     # fallback configuration
     fallback_provider: str | None = None
     fallback_model: str | None = None

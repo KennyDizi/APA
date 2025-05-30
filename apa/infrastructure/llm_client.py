@@ -1,7 +1,7 @@
 import litellm, logging, asyncio
 from typing import Any, AsyncGenerator
 from dataclasses import dataclass
-from apa.config import load_settings
+from apa.config import Settings, load_settings
 
 # logging setup
 logger = logging.getLogger(__name__)
@@ -75,7 +75,7 @@ ACCEPTED_PROVIDERS = frozenset({"openai", "anthropic", "deepseek", "openrouter"}
 def _prepare_completion_kwargs(
     provider_config: ProviderConfig,
     messages: list[dict[str, str]],
-    cfg: Any,
+    cfg: Settings,
     stream: bool = False
 ) -> dict[str, Any]:
     """Prepare kwargs for litellm completion based on model capabilities."""
@@ -150,7 +150,7 @@ def _load_provider_config(provider: str, model: str) -> ProviderConfig:
 async def _execute_completion(
     provider_config: ProviderConfig,
     messages: list[dict[str, str]],
-    cfg: Any,
+    cfg: Settings,
     stream: bool = False,
     attempt: int = 1,
     is_fallback: bool = False
@@ -189,7 +189,7 @@ async def acompletion(
     *,
     model: str | None = None,
     stream: bool = False,
-    settings: Any | None = None
+    settings: Settings | None = None
 ) -> str | AsyncGenerator[str, None]:
     """
     Main async completion wrapper with automatic fallback mechanism.

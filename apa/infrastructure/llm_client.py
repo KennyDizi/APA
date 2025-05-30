@@ -78,7 +78,21 @@ def _prepare_completion_kwargs(
     cfg: Settings,
     stream: bool = False
 ) -> dict[str, Any]:
-    """Prepare kwargs for litellm completion based on model capabilities."""
+    """Prepare kwargs for litellm completion based on model capabilities.
+
+    Builds a dictionary of arguments for litellm.acompletion() based on the
+    specific model's capabilities and configuration settings. Handles
+    temperature, reasoning effort, and Claude thinking tokens appropriately.
+
+    Args:
+        provider_config: Provider configuration containing provider, model, and API key.
+        messages: List of message dictionaries for the conversation.
+        cfg: Application settings containing temperature, reasoning effort, etc.
+        stream: Whether to enable streaming response.
+
+    Returns:
+        dict[str, Any]: Prepared kwargs for litellm.acompletion().
+    """
     model = f"{provider_config.provider}/{provider_config.model}"
     kwargs: dict[str, Any] = {
         "model": model,
@@ -116,7 +130,20 @@ def _prepare_messages(
     user_prompt: str,
     model: str
 ) -> list[dict[str, str]]:
-    """Prepare messages with appropriate role based on model capabilities."""
+    """Prepare messages with appropriate role based on model capabilities.
+
+    Some models (like o1 family) require "developer" role instead of "system"
+    role for the initial prompt. This function automatically selects the
+    correct role based on the model type.
+
+    Args:
+        system_prompt: The system/developer prompt content.
+        user_prompt: The user's input prompt.
+        model: The model name to determine role compatibility.
+
+    Returns:
+        list[dict[str, str]]: Formatted messages for the conversation.
+    """
     role = "developer" if model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
     logger.info(f"Using role: {role} for model: {model}")
     return [
@@ -125,7 +152,22 @@ def _prepare_messages(
     ]
 
 def _load_provider_config(provider: str, model: str) -> ProviderConfig:
-    """Load provider-specific configuration including API key."""
+    """Load provider-specific configuration including API key.
+
+    Validates the provider is supported, retrieves the appropriate API key
+    from environment variables, and creates a ProviderConfig instance.
+
+    Args:
+        provider: The provider name (e.g., "openai", "anthropic").
+        model: The model name for this provider.
+
+    Returns:
+        ProviderConfig: Configuration object with provider, model, and API key.
+
+    Raises:
+        ValueError: If provider is not supported or has no env var mapping.
+        EnvironmentError: If the required API key environment variable is not set.
+    """
     from apa.config import PROVIDER_ENV_MAP
     import os
 
@@ -155,7 +197,27 @@ async def _execute_completion(
     attempt: int = 1,
     is_fallback: bool = False
 ) -> str | AsyncGenerator[str, None]:
-    """Execute a single completion attempt with specific provider configuration."""
+    """Execute a single completion attempt with specific provider configuration.
+
+    Calls litellm.acompletion() with the prepared configuration and handles
+    both streaming and non-streaming responses. Validates that non-empty
+    content is received.
+
+    Args:
+        provider_config: Provider configuration with API credentials.
+        messages: Conversation messages to send to the model.
+        cfg: Application settings for completion parameters.
+        stream: Whether to return streaming response.
+        attempt: Current attempt number (for logging).
+        is_fallback: Whether this is a fallback provider attempt.
+
+    Returns:
+        str | AsyncGenerator[str, None]: Completion text or streaming generator.
+
+    Raises:
+        ValueError: If the model returns empty content.
+        Exception: Any error from the underlying LLM API call.
+    """
     provider_type = "fallback" if is_fallback else "primary"
     model = f"{provider_config.provider}/{provider_config.model}"
     logger.info(
@@ -274,7 +336,20 @@ async def acompletion(
         )
 
 async def _stream_response(response) -> AsyncGenerator[str, None]:
-    """Handle streaming response from LiteLLM."""
+    """Handle streaming response from LiteLLM.
+
+    Iterates through streaming chunks from the LLM response and yields
+    content as it becomes available. Handles errors gracefully.
+
+    Args:
+        response: Streaming response object from litellm.acompletion().
+
+    Yields:
+        str: Content chunks from the streaming response.
+
+    Raises:
+        Exception: Any error that occurs during streaming.
+    """
     try:
         async for chunk in response:
             if chunk.choices and chunk.choices[0].delta and chunk.choices[0].delta.content:

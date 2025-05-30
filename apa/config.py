@@ -32,6 +32,20 @@ class Settings:
     provider: str | None = None               # auto-detected from env vars
 
 def load_settings() -> Settings:
+    """Load and validate application settings from configuration files and environment.
+
+    Loads settings from configuration.toml, validates programming language,
+    loads system prompt from system_prompt.toml, performs template substitution,
+    and resolves provider and API key information from environment variables.
+
+    Returns:
+        Settings: Fully configured and validated settings instance.
+
+    Raises:
+        EnvironmentError: If no valid API key is found for any provider.
+        FileNotFoundError: If system_prompt.toml is missing.
+        ValueError: If system_prompt is empty or invalid.
+    """
     raw = tomllib.loads(_cfg_path.read_text()) if _cfg_path.exists() else {}
     st  = Settings(**raw)
 
@@ -71,7 +85,15 @@ def load_settings() -> Settings:
 
 # -------------------------------------------------------
 def _load_system_prompt() -> str:
-    """Read and return the system prompt from apa/system_prompt.toml"""
+    """Read and return the system prompt from apa/system_prompt.toml.
+
+    Returns:
+        str: The system prompt content from the TOML file.
+
+    Raises:
+        FileNotFoundError: If system_prompt.toml file doesn't exist.
+        ValueError: If system_prompt key is missing or empty in the TOML file.
+    """
     if not _sys_prompt_path.exists():
         raise FileNotFoundError(f"System prompt file not found: {_sys_prompt_path}")
 

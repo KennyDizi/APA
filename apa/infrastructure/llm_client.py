@@ -104,7 +104,7 @@ def _prepare_completion_kwargs(
     if provider_config.model in NO_SUPPORT_TEMPERATURE_MODELS:
         logger.info(f"Model '{provider_config.model}' doesn't support temperature")
     else:
-        kwargs["temperature"] = cfg.temperature
+        kwargs["temperature"] = 0.2 if cfg.temperature is None else cfg.temperature
 
     # Reasoning effort handling
     if provider_config.model in SUPPORT_REASONING_EFFORT_MODELS and cfg.reasoning_effort:

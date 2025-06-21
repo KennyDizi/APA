@@ -17,7 +17,7 @@ PROVIDER_ENV_MAP: dict[str, str] = {
 class Settings:
     system_prompt:  str | None = None
     model:          str | None = None
-    temperature:    float = 0.2
+    temperature:    float | None = None
     reasoning_effort: str | None = "high"
     thinking_tokens:  int | None = 16384
     stream:           bool = False

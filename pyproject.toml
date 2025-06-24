@@ -1,6 +1,6 @@
 [project]
 name        = "apa"
-version     = "0.1.2"
+version     = "0.1.3"
 description = "Async Prompt Application powered by LiteLLM"
 authors     = [{ name = "Kenny Dizi", email = "chitrung09t2@gmail.com" }]
 dependencies = [

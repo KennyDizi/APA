@@ -60,13 +60,15 @@ SUPPORT_DEVELOPER_MESSAGE_MODELS = frozenset({
     "gpt-4.1-2025-04-14",
 })
 
-CLAUDE_EXTENDED_THINKING_MODELS = frozenset({
+EXTENDED_THINKING_MODELS = frozenset({
     "anthropic/claude-3-7-sonnet-20250219",
     "claude-3-7-sonnet-20250219",
     "anthropic/claude-sonnet-4-20250514",
     "claude-sonnet-4-20250514",
     "anthropic/claude-opus-4-20250514",
     "claude-opus-4-20250514",
+    "gemini/gemini-2.5-pro",
+    "openrouter/google/gemini-2.5-pro",
 })
 
 # providers the app currently supports
@@ -112,7 +114,7 @@ def _prepare_completion_kwargs(
         kwargs["reasoning_effort"] = cfg.reasoning_effort
 
     # Claude thinking tokens handling
-    if provider_config.model in CLAUDE_EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
+    if provider_config.model in EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
         logger.info(f"Adding thinking_tokens={cfg.thinking_tokens}")
         kwargs["thinking"] = {
             "type": "enabled",

@@ -114,7 +114,7 @@ def _prepare_completion_kwargs(
         kwargs["reasoning_effort"] = cfg.reasoning_effort
 
     # Claude thinking tokens handling
-    if provider_config.model in EXTENDED_THINKING_MODELS and cfg.thinking_tokens:
+    if (provider_config.model in EXTENDED_THINKING_MODELS or f'{provider_config.provider}/{provider_config.model}' in EXTENDED_THINKING_MODELS) and cfg.thinking_tokens:
         logger.info(f"Adding thinking_tokens={cfg.thinking_tokens}")
         kwargs["thinking"] = {
             "type": "enabled",

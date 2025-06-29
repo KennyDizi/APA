@@ -1,6 +1,6 @@
 import argparse, asyncio, pathlib, sys
-from apa.services import acompletion
 from apa.config     import load_settings
+from apa.infrastructure.llm_client import acompletion
 
 def _parse_args() -> argparse.Namespace:
     """Parse command line arguments for the APA application.

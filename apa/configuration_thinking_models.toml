@@ -1,0 +1,12 @@
+stream = true
+
+programming_language = "Python"
+thinking_tokens  = 16384
+
+# default model to send to LiteLLM (overrides provider-specific default)
+provider = "openrouter" # Could be openai, anthropic, deepseek or openrouter
+model = "google/gemini-2.5-pro" # Should be o3, o3-pro-2025-06-10, o4-mini, claude-sonnet-4-20250514, claude-opus-4-20250514, deepseek-reasoner
+
+# fallback configuration
+fallback_provider = "anthropic"
+fallback_model = "claude-sonnet-4-20250514"

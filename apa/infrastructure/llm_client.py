@@ -71,8 +71,6 @@ EXTENDED_THINKING_MODELS = frozenset({
     "openrouter/google/gemini-2.5-pro",
 })
 
-# providers the app currently supports
-ACCEPTED_PROVIDERS = frozenset({"openai", "anthropic", "deepseek", "openrouter"})
 
 def _prepare_completion_kwargs(
     provider_config: ProviderConfig,
@@ -170,7 +168,7 @@ def _load_provider_config(provider: str, model: str) -> ProviderConfig:
         ValueError: If provider is not supported or has no env var mapping.
         EnvironmentError: If the required API key environment variable is not set.
     """
-    from apa.config import PROVIDER_ENV_MAP
+    from apa.config import PROVIDER_ENV_MAP, ACCEPTED_PROVIDERS
     import os
 
     provider_lc = provider.lower()

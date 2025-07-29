@@ -5,6 +5,9 @@ _cfg_path = pathlib.Path(__file__).with_name("configuration.toml")
 
 _sys_prompt_path = pathlib.Path(__file__).with_name("system_prompt.toml")
 
+# providers the app currently supports
+ACCEPTED_PROVIDERS = frozenset({"openai", "anthropic", "deepseek", "openrouter"})
+
 # maps provider → expected environment variable
 PROVIDER_ENV_MAP: dict[str, str] = {
     "openai":     "OPENAI_API_KEY",
@@ -52,6 +55,13 @@ def load_settings() -> Settings:
     # ----------- normalize programming_language -----------
     if not (st.programming_language and st.programming_language.strip()):
         st.programming_language = "Python"
+
+    # ----------- validate provider -----------
+    if st.provider and st.provider.lower() not in ACCEPTED_PROVIDERS:
+        raise ValueError(
+            f"Unsupported provider '{st.provider}'. "
+            f"Accepted providers: {', '.join(sorted(ACCEPTED_PROVIDERS))}"
+        )
 
     # ----------------   system prompt  -----------------
     if not (st.system_prompt and str(st.system_prompt).strip()):

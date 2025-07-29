@@ -1,16 +1,11 @@
-temperature      = 0.2
-
-# enable incremental output (true / false)
 stream = true
 
 programming_language = "Python"
-reasoning_effort = "high"        # open-ai only
-thinking_tokens  = 16384         # anthropic only
+reasoning_effort = "high"
 
-# default model to send to LiteLLM (overrides provider-specific default)
-provider = "openai" # Could be openai, anthropic, deepseek or openrouter
-model = "o3" # Should be o3, o3-pro-2025-06-10, o4-mini, claude-sonnet-4-20250514, claude-opus-4-20250514, deepseek-reasoner
+provider = "openrouter"
+model = "qwen/qwen3-235b-a22b-thinking-2507"
 
 # fallback configuration
-fallback_provider = "anthropic"
-fallback_model = "claude-sonnet-4-20250514"
+fallback_provider = "openai"
+fallback_model = "o3"

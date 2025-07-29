@@ -77,9 +77,19 @@ def load_settings() -> Settings:
             st.api_key = os.getenv(env_var)
 
     if not st.api_key:
-        raise EnvironmentError(
-            "Missing API key – set one of: " + ", ".join(PROVIDER_ENV_MAP.values())
-        )
+        if st.provider:
+            # Provider is specified in config, but API key is missing
+            env_var = PROVIDER_ENV_MAP.get(st.provider.lower())
+            if env_var:
+                error_msg = f"Missing {env_var} for provider '{st.provider}'"
+            else:
+                # Handle unsupported provider case
+                error_msg = f"Unsupported provider '{st.provider}' in configuration"
+        else:
+            # No provider specified in config, list all possible API keys
+            error_msg = "Missing API key – set one of: " + ", ".join(PROVIDER_ENV_MAP.values())
+        
+        raise EnvironmentError(error_msg)
 
     return st
 

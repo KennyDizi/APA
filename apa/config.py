@@ -98,7 +98,7 @@ def load_settings() -> Settings:
         else:
             # No provider specified in config, list all possible API keys
             error_msg = "Missing API key – set one of: " + ", ".join(PROVIDER_ENV_MAP.values())
-        
+
         raise EnvironmentError(error_msg)
 
     return st

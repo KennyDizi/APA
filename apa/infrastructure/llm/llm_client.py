@@ -151,7 +151,6 @@ class LLMClient:
         stream: bool
     ) -> dict[str, Any]:
         """Prepare kwargs for litellm completion based on model capabilities."""
-        print(f"Preparing kwargs for model: {model}")
 
         kwargs: dict[str, Any] = {
             "model": f"{self.config.provider}/{model}",

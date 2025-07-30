@@ -8,6 +8,7 @@ from apa.domain.models import Prompt, SystemPrompt, LLMConfig
 from apa.infrastructure.config.config_loader import ConfigLoader
 from apa.infrastructure.llm.llm_client import LLMClient
 from apa.infrastructure.io.file_writer import FileWriter
+from apa.infrastructure.ui.console_loading_indicator import ConsoleLoadingIndicator
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
@@ -68,9 +69,10 @@ async def main() -> None:
     # Create infrastructure adapters
     llm_client = LLMClient(llm_config)
     file_writer = FileWriter()
+    loading_indicator = ConsoleLoadingIndicator("Waiting for LLM response")
 
     # Create application services
-    prompt_processor = PromptProcessor(llm_client)
+    prompt_processor = PromptProcessor(llm_client, loading_indicator)
     response_handler = ResponseHandler(file_writer)
 
     # Process the prompt

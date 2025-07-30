@@ -65,11 +65,16 @@ class PromptProcessor:
             )
 
             # Handle first chunk (where we wait for initial response)
-            first_chunk = await stream.__anext__()
-            if self.loading_indicator:
-                self.loading_indicator.stop()
-
-            yield first_chunk
+            try:
+                first_chunk = await stream.__anext__()
+                if self.loading_indicator:
+                    self.loading_indicator.stop()
+                yield first_chunk
+            except StopAsyncIteration:
+                # Stream was empty - stop loading indicator and raise specific error
+                if self.loading_indicator:
+                    self.loading_indicator.stop()
+                raise PromptProcessingError("Received empty response from LLM") from None
 
             # Yield remaining chunks
             async for chunk in stream:

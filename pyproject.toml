@@ -1,6 +1,6 @@
 [project]
 name        = "apa"
-version     = "0.3.0"
+version     = "0.3.1"
 description = "Async Prompt Application powered by LiteLLM"
 authors     = [{ name = "Kenny Dizi", email = "chitrung09t2@gmail.com" }]
 dependencies = [
@@ -12,7 +12,7 @@ dependencies = [
     "jiter==0.10.0",
     "pydantic==2.11.7",
     "typing-extensions==4.14.1",
-    "openai==1.97.1",
+    "openai==1.97.2",
     "setuptools==80.9.0",
 ]
 requires-python = ">=3.13"

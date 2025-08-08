@@ -1,5 +1,5 @@
 import litellm
-from typing import Dict, Any, AsyncGenerator, Optional
+from typing import Any, AsyncGenerator, Optional
 from apa.domain.models import LLMConfig
 from apa.domain.exceptions import ProviderError
 
@@ -175,8 +175,8 @@ class LLMClient:
         if (model in self.SUPPORT_REASONING_EFFORT_MODELS and
             self.config.provider in self.REASONING_EFFORT_SUPPORTED_PROVIDERS and
             self.config.reasoning_effort):
-            print(f"Setting reasoning effort to {self.config.reasoning_effort}")
             kwargs["reasoning_effort"] = self.config.reasoning_effort
+            kwargs["allowed_openai_params"] = ["reasoning_effort"]
 
         # Thinking tokens handling
         if (model in self.EXTENDED_THINKING_MODELS or f'{self.config.provider}/{model}' in self.EXTENDED_THINKING_MODELS) and self.config.thinking_tokens:

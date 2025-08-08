@@ -40,7 +40,7 @@ class ConsoleLoadingIndicator(LoadingIndicator):
         sys.stdout.write("\x1b[?25h")
         sys.stdout.flush()
 
-    def _render_frame(self, head_pos: float) -> str:
+    def _render_frame(self, head_pos: float, moving_right: bool) -> str:
         """Generate frame string based on head position (0.0-9.0)."""
         frame = []
         for i in range(10):
@@ -48,9 +48,10 @@ class ConsoleLoadingIndicator(LoadingIndicator):
             if d < 0 or d > 2:
                 frame.append("  ")  # Invisible
             elif d < 1:
-                frame.append("\x1b[97m██\x1b[0m")  # Bright white
+                # Swap white/shadow depending on direction (swap on every bounce)
+                frame.append("\x1b[97m██\x1b[0m" if moving_right else "\x1b[37m██\x1b[0m")
             elif d < 2:
-                frame.append("\x1b[37m██\x1b[0m")  # Light gray
+                frame.append("\x1b[37m██\x1b[0m" if moving_right else "\x1b[97m██\x1b[0m")
             else:
                 frame.append("\x1b[90m██\x1b[0m")  # Dark gray
         return ''.join(frame)
@@ -77,8 +78,10 @@ class ConsoleLoadingIndicator(LoadingIndicator):
                 # Backward movement: 9.0 → 0.0 in 2 seconds
                 head_pos = 9.0 - ((cycle_time - 2.0) / 2.0) * 9.0
 
+            moving_right = cycle_time < 2.0
+
             # Render and display frame
-            frame = self._render_frame(head_pos)
+            frame = self._render_frame(head_pos, moving_right)
             sys.stdout.write(f"\r\x1b[2K{self.message} {frame}")
             sys.stdout.flush()
 

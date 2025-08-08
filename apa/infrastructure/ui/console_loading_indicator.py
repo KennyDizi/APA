@@ -1,7 +1,6 @@
 import sys
 import threading
 import time
-from typing import Optional
 from apa.domain.interfaces import LoadingIndicator
 
 class ConsoleLoadingIndicator(LoadingIndicator):

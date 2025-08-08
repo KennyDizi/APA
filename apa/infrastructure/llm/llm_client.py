@@ -21,6 +21,8 @@ class LLMClient:
         "o3-2025-04-16",
         "o4-mini",
         "o4-mini-2025-04-16",
+        "gpt-5-2025-08-07",
+        "gpt-5",
     })
 
     SUPPORT_REASONING_EFFORT_MODELS = frozenset({
@@ -30,7 +32,9 @@ class LLMClient:
         "o3-2025-04-16",
         "o4-mini",
         "o4-mini-2025-04-16",
-        "qwen/qwen3-235b-a22b-thinking-2507"
+        "qwen/qwen3-235b-a22b-thinking-2507",
+        "gpt-5-2025-08-07",
+        "gpt-5",
     })
 
     SUPPORT_DEVELOPER_MESSAGE_MODELS = frozenset({
@@ -46,6 +50,8 @@ class LLMClient:
         "o4-mini-2025-04-16",
         "gpt-4.1",
         "gpt-4.1-2025-04-14",
+        "gpt-5-2025-08-07",
+        "gpt-5",
     })
 
     EXTENDED_THINKING_MODELS = frozenset({
@@ -57,6 +63,8 @@ class LLMClient:
         "claude-opus-4-20250514",
         "gemini/gemini-2.5-pro",
         "google/gemini-2.5-pro",
+        "claude-opus-4-1-20250805",
+        "anthropic/claude-opus-4-1-20250805",
     })
 
     # Providers that support the reasoning_effort parameter

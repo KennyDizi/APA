@@ -21,4 +21,4 @@ if [[ $# -ne 2 || "$1" != "--msg-file" ]]; then
 fi
 
 # 3. launch the Python entry-point
-python3 main.py --msg-file "$2"
+exec python3 main.py --msg-file "$2"

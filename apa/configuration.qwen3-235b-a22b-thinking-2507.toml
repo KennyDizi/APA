@@ -8,4 +8,4 @@ model = "qwen/qwen3-235b-a22b-thinking-2507"
 
 # fallback configuration
 fallback_provider = "openai"
-fallback_model = "o3"
+fallback_model = "gpt-5-2025-08-07"

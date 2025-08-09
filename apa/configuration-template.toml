@@ -1,0 +1,11 @@
+stream = true
+
+programming_language = "Python"
+reasoning_effort = "high"
+
+provider = "openai"
+model = "gpt-5-2025-08-07"
+
+# fallback configuration
+fallback_provider = "openrouter"
+fallback_model = "qwen/qwen3-235b-a22b-thinking-2507"

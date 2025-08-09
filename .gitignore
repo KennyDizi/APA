@@ -174,3 +174,4 @@ cython_debug/
 .pypirc
 .aider*
 *.DS_Store
+*configuration.toml

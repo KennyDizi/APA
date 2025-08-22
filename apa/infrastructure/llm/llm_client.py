@@ -8,7 +8,6 @@ class LLMClient:
 
     NO_SUPPORT_TEMPERATURE_MODELS = frozenset({
         "deepseek/deepseek-reasoner",
-        "deepseek/deepseek-r1-0528",
         "qwen/qwen3-235b-a22b-thinking-2507",
         "o1-mini",
         "o1-mini-2024-09-12",
@@ -61,8 +60,6 @@ class LLMClient:
         "claude-sonnet-4-20250514",
         "anthropic/claude-opus-4-20250514",
         "claude-opus-4-20250514",
-        "gemini/gemini-2.5-pro",
-        "google/gemini-2.5-pro",
         "claude-opus-4-1-20250805",
         "anthropic/claude-opus-4-1-20250805",
     })

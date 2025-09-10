@@ -70,13 +70,24 @@ apa/
 ├── 📄 configuration.toml      # Runtime settings
 ├── 📄 system_prompt.toml      # Customizable system prompt
 ├── 🐍 __init__.py
-├── 🔧 config.py               # Configuration loader
-├── 📂 infrastructure/
-│   └── 🔌 llm_client.py       # Async LiteLLM wrapper
-└── 📂 services/
-    └── 🎯 __init__.py         # Service facade
+├── 🔧 config.py               # Unified configuration system
+├── 📂 domain/                 # Domain layer
+│   ├── models.py              # Value objects (Prompt, LLMConfig, etc.)
+│   ├── interfaces.py          # Abstract interfaces
+│   └── exceptions.py          # Domain exceptions
+├── 📂 application/            # Application layer
+│   ├── prompt_processor.py    # Prompt processing orchestration
+│   └── response_handler.py    # Response handling and file output
+└── 📂 infrastructure/         # Infrastructure layer
+    ├── llm/
+    │   ├── llm_client.py       # LiteLLM adapter
+    │   └── model_capabilities.py # Model capability definitions
+    ├── io/
+    │   └── file_writer.py      # File I/O operations
+    └── ui/
+        └── console_loading_indicator.py # Loading animations
 📄 main.py                     # CLI entry point
-🚀 run.sh                      # Environment helper
+🚀 run-apa.sh                  # uv-powered execution script
 📋 requirements.txt            # Dependencies
 📦 pyproject.toml              # Project metadata
 ```
@@ -122,14 +133,11 @@ echo "Explain quantum computing in simple terms" > prompt.txt
 
 Run APA:
 ```bash
-# Using the helper script (auto-loads .env)
-./run.sh --msg-file prompt.txt
+# Using the helper script (auto-loads .env, manages virtual environment with uv)
+./run-apa.sh --msg-file prompt.txt
 
 # Direct execution
 python main.py --msg-file prompt.txt
-
-# Force streaming mode
-python main.py --msg-file prompt.txt --stream
 
 # After installation
 apa --msg-file prompt.txt
@@ -139,30 +147,38 @@ apa --msg-file prompt.txt
 
 ```python
 import asyncio
-from apa.services import acompletion
 from apa.config import load_settings
+from apa.domain.models import Prompt, SystemPrompt, LLMConfig
+from apa.application.prompt_processor import PromptProcessor
+from apa.infrastructure.llm.llm_client import LLMClient
 
 async def main():
-    cfg = load_settings()
+    # Load unified configuration
+    settings = load_settings()
     
-    # Non-streaming
-    response = await acompletion(
-        cfg.system_prompt,
-        "Explain the SOLID principles",
-        model="gpt-4",
-        stream=False
-    )
-    print(response)
+    # Create domain objects
+    user_prompt = Prompt(content="Explain the SOLID principles", language=settings.programming_language)
+    system_prompt = SystemPrompt(template=settings.system_prompt, language=settings.programming_language)
     
-    # Streaming
-    stream = await acompletion(
-        cfg.system_prompt,
-        "Write a haiku about coding",
-        model="claude-3-7-sonnet",
-        stream=True
+    llm_config = LLMConfig(
+        provider=settings.provider,
+        model=settings.model,
+        api_key=settings.api_key,
+        temperature=settings.temperature,
+        stream=settings.stream
     )
-    async for chunk in stream:
-        print(chunk, end='', flush=True)
+    
+    # Create infrastructure and application services
+    llm_client = LLMClient(llm_config)
+    prompt_processor = PromptProcessor(llm_client)
+    
+    # Process prompt
+    if settings.stream:
+        async for chunk in prompt_processor.process_prompt_stream(system_prompt, user_prompt, llm_config):
+            print(chunk, end='', flush=True)
+    else:
+        response = await prompt_processor.process_prompt(system_prompt, user_prompt, llm_config)
+        print(response)
 
 asyncio.run(main())
 ```
@@ -269,14 +285,19 @@ fallback_model = "claude-sonnet-4-20250514"
 ### Adding a New Provider
 
 1. Update `PROVIDER_ENV_MAP` in `apa/config.py`
-2. Add model capabilities to `llm_client.py`
-3. Test with your API key
+2. Add model capabilities to `apa/infrastructure/llm/model_capabilities.py`
+3. Update LLMClient logic if needed
+4. Test with your API key
 
-### Custom Features
+### Architecture
 
-- **Retry Policy**: Modify `@retry` decorator in `llm_client.py`
-- **New Endpoints**: Extend `acompletion` in services
-- **UI/API**: Build on top of the async service layer
+APA follows Clean Architecture principles with clear separation of concerns:
+
+- **Domain Layer**: Core business logic and value objects
+- **Application Layer**: Use cases and orchestration
+- **Infrastructure Layer**: External adapters (LLM providers, file I/O, UI)
+
+The unified configuration system in `apa/config.py` provides a single entry point for all settings with automatic provider detection and template rendering.
 
 ---
 

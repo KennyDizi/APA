@@ -2,73 +2,16 @@ import litellm
 from typing import Any, AsyncGenerator, Optional
 from apa.domain.models import LLMConfig
 from apa.domain.exceptions import ProviderError
+from .model_capabilities import (
+    NO_SUPPORT_TEMPERATURE_MODELS,
+    SUPPORT_REASONING_EFFORT_MODELS,
+    SUPPORT_DEVELOPER_MESSAGE_MODELS,
+    EXTENDED_THINKING_MODELS,
+    REASONING_EFFORT_SUPPORTED_PROVIDERS,
+)
 
 class LLMClient:
     """Adapter for interacting with LLM providers through LiteLLM."""
-
-    NO_SUPPORT_TEMPERATURE_MODELS = frozenset({
-        "deepseek/deepseek-reasoner",
-        "deepseek/deepseek-r1-0528",
-        "qwen/qwen3-235b-a22b-thinking-2507",
-        "o1-mini",
-        "o1-mini-2024-09-12",
-        "o1",
-        "o1-2024-12-17",
-        "o3-mini",
-        "o3-mini-2025-01-31",
-        "o1-preview",
-        "o3",
-        "o3-2025-04-16",
-        "o4-mini",
-        "o4-mini-2025-04-16",
-        "gpt-5-2025-08-07",
-        "gpt-5",
-    })
-
-    SUPPORT_REASONING_EFFORT_MODELS = frozenset({
-        "o3-mini",
-        "o3-mini-2025-01-31",
-        "o3",
-        "o3-2025-04-16",
-        "o4-mini",
-        "o4-mini-2025-04-16",
-        "qwen/qwen3-235b-a22b-thinking-2507",
-        "gpt-5-2025-08-07",
-        "gpt-5",
-    })
-
-    SUPPORT_DEVELOPER_MESSAGE_MODELS = frozenset({
-        "o1",
-        "o1-2024-12-17",
-        "o3-mini",
-        "o3-mini-2025-01-31",
-        "o1-pro",
-        "o1-pro-2025-03-19",
-        "o3",
-        "o3-2025-04-16",
-        "o4-mini",
-        "o4-mini-2025-04-16",
-        "gpt-4.1",
-        "gpt-4.1-2025-04-14",
-        "gpt-5-2025-08-07",
-        "gpt-5",
-    })
-
-    EXTENDED_THINKING_MODELS = frozenset({
-        "anthropic/claude-3-7-sonnet-20250219",
-        "claude-3-7-sonnet-20250219",
-        "anthropic/claude-sonnet-4-20250514",
-        "claude-sonnet-4-20250514",
-        "anthropic/claude-opus-4-20250514",
-        "claude-opus-4-20250514",
-        "gemini/gemini-2.5-pro",
-        "google/gemini-2.5-pro",
-        "claude-opus-4-1-20250805",
-        "anthropic/claude-opus-4-1-20250805",
-    })
-
-    # Providers that support the reasoning_effort parameter
-    REASONING_EFFORT_SUPPORTED_PROVIDERS = frozenset({"openai"})
 
     def __init__(self, config: LLMConfig):
         self.config = config
@@ -145,7 +88,7 @@ class LLMClient:
         model: str
     ) -> list[dict[str, str]]:
         """Prepare messages with appropriate role based on model capabilities."""
-        role = "developer" if model in self.SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
+        role = "developer" if model in SUPPORT_DEVELOPER_MESSAGE_MODELS else "system"
         return [
             {"role": role, "content": system_prompt},
             {"role": "user", "content": user_prompt},
@@ -159,34 +102,46 @@ class LLMClient:
         stream: bool
     ) -> dict[str, Any]:
         """Prepare kwargs for litellm completion based on model capabilities."""
-
         kwargs: dict[str, Any] = {
             "model": f"{self.config.provider}/{model}",
             "messages": messages,
             "api_key": self.config.api_key,
         }
 
-        # Temperature handling
-        if model not in self.NO_SUPPORT_TEMPERATURE_MODELS and temperature is not None:
-            print(f"Setting temperature to {temperature}")
-            kwargs["temperature"] = temperature
-
-        # Reasoning effort handling - only add if provider supports it
-        if (model in self.SUPPORT_REASONING_EFFORT_MODELS and
-            self.config.provider in self.REASONING_EFFORT_SUPPORTED_PROVIDERS and
-            self.config.reasoning_effort):
-            kwargs["reasoning_effort"] = self.config.reasoning_effort
-            kwargs["allowed_openai_params"] = ["reasoning_effort"]
-
-        # Thinking tokens handling
-        if (model in self.EXTENDED_THINKING_MODELS or f'{self.config.provider}/{model}' in self.EXTENDED_THINKING_MODELS) and self.config.thinking_tokens:
-            kwargs["thinking"] = {
-                "type": "enabled",
-                "budget_tokens": self.config.thinking_tokens
-            }
-            kwargs["temperature"] = 1.0
+        self._add_temperature_config(kwargs, model, temperature)
+        self._add_reasoning_effort_config(kwargs, model)
+        self._add_thinking_tokens_config(kwargs, model)
 
         if stream:
             kwargs["stream"] = True
 
         return kwargs
+
+    def _add_temperature_config(
+        self,
+        kwargs: dict[str, Any],
+        model: str,
+        temperature: Optional[float]
+    ) -> None:
+        """Add temperature configuration if supported by model."""
+        if model not in NO_SUPPORT_TEMPERATURE_MODELS and temperature is not None:
+            kwargs["temperature"] = temperature
+
+    def _add_reasoning_effort_config(self, kwargs: dict[str, Any], model: str) -> None:
+        """Add reasoning effort configuration if supported."""
+        if (model in SUPPORT_REASONING_EFFORT_MODELS and
+            self.config.provider in REASONING_EFFORT_SUPPORTED_PROVIDERS and
+            self.config.reasoning_effort):
+            kwargs["reasoning_effort"] = self.config.reasoning_effort
+            kwargs["allowed_openai_params"] = ["reasoning_effort"]
+
+    def _add_thinking_tokens_config(self, kwargs: dict[str, Any], model: str) -> None:
+        """Add thinking tokens configuration if supported."""
+        full_model_name = f'{self.config.provider}/{model}'
+        if ((model in EXTENDED_THINKING_MODELS or full_model_name in EXTENDED_THINKING_MODELS) 
+            and self.config.thinking_tokens):
+            kwargs["thinking"] = {
+                "type": "enabled",
+                "budget_tokens": self.config.thinking_tokens
+            }
+            kwargs["temperature"] = 1.0
